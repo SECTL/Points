@@ -1,0 +1,26 @@
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     @VERSION_MAJOR@,@VERSION_MINOR@,@VERSION_PATCH@,0
+PRODUCTVERSION  @VERSION_MAJOR@,@VERSION_MINOR@,@VERSION_PATCH@,0
+FILEFLAGSMASK   0x3fL
+FILEFLAGS       0x0L
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "FileDescription", "班级积分管理系统"
+            VALUE "FileVersion", "@VERSION_STRING@"
+            VALUE "ProductName", "ClassScoreManageSystem"
+            VALUE "ProductVersion", "@VERSION_STRING@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
