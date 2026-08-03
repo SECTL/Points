@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(CSMS VERSION 1.0.0)
+project(Points VERSION 1.0.0)
 
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -20,25 +20,25 @@ list(GET VERSION_LIST 2 VERSION_PATCH)
 # 告诉 CMake，我们的源代码都在 src 目录下
 file(GLOB SOURCES "src/*.cpp")
 
-# 生成可执行文件，名字叫 CSMS
-add_executable(CSMS ${SOURCES})
+# 生成可执行文件，名字叫 Points
+add_executable(Points ${SOURCES})
 # 配置 .rc 文件
 configure_file(resource/version.rc.in ${CMAKE_CURRENT_BINARY_DIR}/version.rc @ONLY)
-target_sources(CSMS PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
+target_sources(Points PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/version.rc)
 
 # 设置 Debug 模式下定义 _DEBUG，Release 模式下不定义
-target_compile_definitions(CSMS PRIVATE
+target_compile_definitions(Points PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
     $<$<CONFIG:Release>:NDEBUG>
 )
 
 # 把版本号作为宏传给 C++ 源码，这样 main.cpp 也能拿到
-target_compile_definitions(CSMS PRIVATE APP_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(Points PRIVATE APP_VERSION="${PROJECT_VERSION}")
 
 # 链接配置
-target_include_directories(CSMS PRIVATE include)
-target_link_directories(CSMS PRIVATE lib)
-target_link_libraries(CSMS
+target_include_directories(Points PRIVATE include)
+target_link_directories(Points PRIVATE lib)
+target_link_libraries(Points
     libcurl
     ws2_32
     wldap32
