@@ -4,7 +4,7 @@ project(Points VERSION 1.0.0)
 set(CMAKE_BUILD_TYPE Debug)
 
 # 指定 C++ 标准
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 导出编译命令，让 VS Code 智能提示能正确识别宏
