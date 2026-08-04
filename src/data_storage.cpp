@@ -1,17 +1,16 @@
-// 业务存储层：把 FileInstance 引擎接到 data_storage.h 的字段级 API
-// 班级语义：read::xxx(class) 激活班级（学生走 FileInstance 单例，rules/gifts 走独立表）；
+// 业务存储层：把 FileStore 引擎接到 data_storage.h 的字段级 API
+// 班级语义：read::xxx(class) 激活班级（学生/规则/礼物各走独立表单例）；
 //           write::xxx 作用于当前激活班级（无班级参数的签名按当前班级处理）
+// 持久化语义：write 只改内存 + 置脏标记，由调用方在动作边界显式 save()。
 // 注意：include 必须放在 import 之前——MSVC 下消费 TU 在 import 后再 include 模块全局片段已含
 // 的 STL 头（<string>/<fstream> 等）会触发 C2572 默认模板参数重复定义
 #include "data_storage.h"
 
 #include <algorithm>
 #include <cstring>
-#include <fstream>
 #include <map>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 import storage;
 
@@ -23,18 +22,32 @@ std::string path_for(const std::string& class_name, const char* stem) {
     return std::string(stem) + "_" + class_name + ".dat";
 }
 
-// 学生引擎：FileInstance 单例，按班级映射文件路径
-points::FileInstance& ensure_students(const std::string& class_name) {
-    auto path = path_for(class_name, "students");
+// 三张表各自的单例门面：学生 = FileInstance，规则/礼物 = 同构 Record 的不同类型
+using RuleStore = points::FileStore<points::RuleRecord>;
+using GiftStore = points::FileStore<points::GiftRecord>;
+
+template<typename Store>
+Store& ensure_store(Store* /*tag*/, const std::string& class_name, const char* stem) {
+    auto path = path_for(class_name, stem);
     try {
-        auto& fi = points::FileInstance::get();
-        if (fi.path() != path)
-            fi.switch_to(path);          // 切班级：脏则自动落盘
-        return fi;
-    } catch (const std::logic_error&) {  // 未初始化
-        points::FileInstance::init(path);
-        return points::FileInstance::get();
+        auto& s = Store::get();
+        if (s.path() != path)
+            s.switch_to(path);          // 切班级：脏则自动落盘
+        return s;
+    } catch (const std::logic_error&) { // 未初始化
+        Store::init(path);
+        return Store::get();
     }
+}
+
+points::FileInstance& ensure_students(const std::string& class_name) {
+    return ensure_store(static_cast<points::FileInstance*>(nullptr), class_name, "students");
+}
+RuleStore& ensure_rules(const std::string& class_name) {
+    return ensure_store(static_cast<RuleStore*>(nullptr), class_name, "rules");
+}
+GiftStore& ensure_gifts(const std::string& class_name) {
+    return ensure_store(static_cast<GiftStore*>(nullptr), class_name, "gifts");
 }
 
 // UTF-8 安全截断：不超过 max_bytes，且不在多字节序列中间切断
@@ -46,38 +59,6 @@ void copy_utf8_truncated(std::byte* dest, size_t max_bytes, const std::string& s
     }
     std::memcpy(dest, src.data(), n);
     std::memset(dest + n, 0, max_bytes - n);
-}
-
-// —— rules / gifts：独立表（管道文本，仿旧 rules.dat；迁二进制引擎后统一走 FileInstance）——
-struct Entry { std::string desc; int delta; };
-using Table = std::vector<Entry>;
-
-struct Tables {
-    std::map<std::string, Table> rules;
-    std::map<std::string, Table> gifts;
-};
-Tables& tables() { static Tables t; return t; }
-
-Table load_table(const std::string& path) {
-    Table t;
-    std::ifstream fin(path);
-    std::string line;
-    while (std::getline(fin, line)) {
-        auto pos = line.find_last_of('|');
-        if (pos == std::string::npos || pos + 1 >= line.size())
-            continue;                    // 坏行跳过（宽松读旧数据）
-        Entry e;
-        e.desc = line.substr(0, pos);
-        e.delta = std::stoi(line.substr(pos + 1));
-        t.push_back(std::move(e));
-    }
-    return t;
-}
-
-void save_table(const std::string& path, const Table& t) {
-    std::ofstream fout(path);            // 文本表暂不原子写，迁引擎后统一
-    for (const auto& e : t)
-        fout << e.desc << "|" << e.delta << "\n";
 }
 
 std::string current_class = "default";   // read::xxx 激活，write::xxx 消费
@@ -93,12 +74,12 @@ void students(const std::string& class_name) {
 
 void rules(const std::string& class_name) {
     current_class = class_name;
-    tables().rules[class_name] = load_table(path_for(class_name, "rules"));
+    ensure_rules(class_name).load();     // 强制从盘重读
 }
 
 void gifts(const std::string& class_name) {
     current_class = class_name;
-    tables().gifts[class_name] = load_table(path_for(class_name, "gifts"));
+    ensure_gifts(class_name).load();
 }
 
 std::map<std::string, std::string> config(const std::string& /*class_name*/) {
@@ -183,19 +164,22 @@ bool rank(int id, const int& new_rank) {
 
 namespace rule {
 
+// rule_num 1..N 映射到槽位 rule_num-1（引擎 add() 分配，槽位即编号）
 bool desc(int rule_num, const std::string& new_desc) {
-    auto& t = tables().rules[current_class];
-    if (rule_num < 1 || rule_num > static_cast<int>(t.size())) return false;
-    t[rule_num - 1].desc = new_desc;
-    save_table(path_for(current_class, "rules"), t);
+    auto& s = ensure_rules(current_class);
+    auto* r = s.find(static_cast<uint32_t>(rule_num - 1));
+    if (!r) return false;
+    copy_utf8_truncated(r->desc, sizeof(r->desc), new_desc);
+    s.mark_dirty();
     return true;
 }
 
 bool delta(int rule_num, const int& new_delta) {
-    auto& t = tables().rules[current_class];
-    if (rule_num < 1 || rule_num > static_cast<int>(t.size())) return false;
-    t[rule_num - 1].delta = new_delta;
-    save_table(path_for(current_class, "rules"), t);
+    auto& s = ensure_rules(current_class);
+    auto* r = s.find(static_cast<uint32_t>(rule_num - 1));
+    if (!r) return false;
+    r->delta = new_delta;
+    s.mark_dirty();
     return true;
 }
 
@@ -204,18 +188,20 @@ bool delta(int rule_num, const int& new_delta) {
 namespace gift {
 
 bool desc(int gift_num, const std::string& new_desc) {
-    auto& t = tables().gifts[current_class];
-    if (gift_num < 1 || gift_num > static_cast<int>(t.size())) return false;
-    t[gift_num - 1].desc = new_desc;
-    save_table(path_for(current_class, "gifts"), t);
+    auto& s = ensure_gifts(current_class);
+    auto* r = s.find(static_cast<uint32_t>(gift_num - 1));
+    if (!r) return false;
+    copy_utf8_truncated(r->desc, sizeof(r->desc), new_desc);
+    s.mark_dirty();
     return true;
 }
 
 bool delta(int gift_num, const int& new_delta) {
-    auto& t = tables().gifts[current_class];
-    if (gift_num < 1 || gift_num > static_cast<int>(t.size())) return false;
-    t[gift_num - 1].delta = new_delta;
-    save_table(path_for(current_class, "gifts"), t);
+    auto& s = ensure_gifts(current_class);
+    auto* r = s.find(static_cast<uint32_t>(gift_num - 1));
+    if (!r) return false;
+    r->delta = new_delta;
+    s.mark_dirty();
     return true;
 }
 
