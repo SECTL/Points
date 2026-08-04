@@ -26,6 +26,8 @@ target("points_main_old")
 
 target("points_modernize")
     set_kind("binary")
+    add_files("src/storage_management.ixx")
+    add_files("src/exceptions.ixx")
     add_files("src/storage_management.cpp")
     add_defines(string.format('APP_VERSION="%s"', APP_VERSION))
     if is_plat("windows") then
