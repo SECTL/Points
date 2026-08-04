@@ -11,7 +11,6 @@ add_requires("nlohmann_json","libcurl")
 
 target("points_main")
     set_kind("binary")
-    add_includedirs("include")
     add_files("old/main.cpp")
     add_packages("nlohmann_json", "libcurl")
     add_defines(string.format('APP_VERSION="%s"', APP_VERSION))

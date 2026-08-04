@@ -12,13 +12,11 @@ Release/
 # xmake 缓存
 .xmake/
 
-# # 编辑器文件
-# .vscode/
+# clangd 编译数据库（生成产物）
+compile_commands.json
 
-# !.vscode/settings.json
-# !.vscode/extensions.json
-# !.vscode/launch.json
-# !.vscode/tasks.json
+# 编辑器配置（含硬编码路径，不入库）
+.vscode/
 
 # 系统文件
 .DS_Store
