@@ -264,7 +264,7 @@ bool check_for_updates(const string& json_data) {
 
     string latest_tag = parse_version_number(json_data);
 
-    const string current_version = APP_VERSION;   // 这里的 APP_VERSION 是 CMake 传进来的宏
+    const string current_version = APP_VERSION;   // APP_VERSION 由 xmake 的 add_defines 传入
     cout << "当前本地版本: " << current_version << endl;
     log("当前本地版本: " + current_version, "INFO");
 

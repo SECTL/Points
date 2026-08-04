@@ -9,6 +9,9 @@ build/
 Debug/
 Release/
 
+# xmake 缓存
+.xmake/
+
 # # 编辑器文件
 # .vscode/
 
