@@ -35,8 +35,8 @@ export namespace points
 		std::byte gender[64];
 		int64_t old_score;
 		int64_t score;
-		int64_t old_rank;
-		int64_t rank;
+		uint32_t old_rank;
+		uint32_t rank;
 	};
 
 	constexpr uint32_t file_header_size = sizeof(FileHeader);

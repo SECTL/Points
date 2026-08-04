@@ -21,4 +21,5 @@ namespace points
 			throw std::logic_error("FileInstance not initialized");
 		return *inst_;
 	}
+
 }
