@@ -6,7 +6,7 @@ module;
 
 export module exceptions;
 
-namespace points
+export namespace points
 {
 	struct file_format_error : std::runtime_error
 	{

@@ -40,7 +40,11 @@ export namespace points
 	};
 
 	constexpr uint32_t file_header_size = sizeof(FileHeader);
-	constexpr uint32_t record_size = sizeof(Record);
+
+	// 磁盘记录长度 = 字段连续和（≠ sizeof(Record)，padding 不入文件）
+	// flags(1) id(4) next(4) name(64) gender(64) old_score(8) score(8) old_rank(4) rank(4) = 161
+	constexpr uint32_t record_size = 161;
+	static_assert(1 + 4 + 4 + 64 + 64 + 8 + 8 + 4 + 4 == record_size);
 
 	class FileInstance {
 	public:
