@@ -44,8 +44,8 @@ namespace points
 
 	void get_record(std::string_view s, size_t slot, Record &r)
 	{
-		const size_t off = slot * record_size;
-		if (s.size() < off + record_size)
+		const size_t off = slot * get_record_field_size();
+		if (s.size() < off + get_record_field_size())
 			throw file_format_error("Record slot out of range");
 		// 与 put_record 严格镜像：同序、同长度，跑指针逐个字段取
 		const char *p = s.data() + off;
@@ -66,5 +66,6 @@ namespace points
 		memcpy(&r.old_rank, p, sizeof(r.old_rank));
 		p += sizeof(r.old_rank);
 		memcpy(&r.rank, p, sizeof(r.rank));
+		// 等到C++26 反射来了之后这段代码就可以变成一个循环，这就是前面 record_field_sizes 数组的作用
 	}
 }
