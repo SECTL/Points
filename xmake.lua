@@ -13,7 +13,7 @@ if get_config("toolchain") ~= "gcc" then
     add_requires("nlohmann_json","libcurl")
 end
 
-target("points_main_old")
+target("points_main")
     set_kind("binary")
     add_files("old/main.cpp")
     if get_config("toolchain") ~= "gcc" then
