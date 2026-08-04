@@ -36,6 +36,8 @@ target("points_modernize")
     add_files("src/storage_management.ixx")
     add_files("src/exceptions.ixx")
     add_files("src/storage_management.cpp")
+    add_files("src/data_storage.cpp")
+    add_includedirs("include")
     add_defines(string.format('APP_VERSION="%s"', APP_VERSION))
     -- /utf-8 是 MSVC/clang-cl 专用；GCC 默认按 UTF-8 读源码
     if get_config("toolchain") ~= "gcc" then

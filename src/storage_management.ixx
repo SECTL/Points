@@ -8,6 +8,7 @@ module;
 #include <fstream>
 #include <memory>
 #include <numeric>
+#include <vector>
 #if defined(__cpp_impl_reflection)
 #include <meta>
 #endif
@@ -78,6 +79,9 @@ export namespace points
 	// 两条路径都必须得出同一个磁盘长度，编译期钉死
 	static_assert(get_record_field_size() == 161, "record disk size");
 
+	// 空闲链表哨兵：0xFFFFFFFF = 无空闲槽
+	inline constexpr uint32_t FREE_NIL = 0xFFFFFFFFu;
+
 	class FileInstance {
 	public:
 		static void init(const std::filesystem::path& path);  // main 开头调用一次
@@ -86,12 +90,27 @@ export namespace points
 		FileInstance(const FileInstance&) = delete;           // 拷贝构造：封死
 		FileInstance& operator=(const FileInstance&) = delete; // 拷贝赋值：封死
 
-		void load();                                          // 无参——路径在成员里
-		void save();
+		const std::filesystem::path& path() const noexcept;   // 当前绑定文件
+
+		void load();      // 读文件进内存（重建空闲链）；文件不存在 = 空库
+		void save();      // 仅脏标记时写盘；tmp + rename 原子替换
+		void switch_to(const std::filesystem::path& path);    // 切班级：脏则先存，再换路径加载
+
+		Record* find(uint32_t id) noexcept;                   // 越界/空洞 → nullptr
+		const Record* find(uint32_t id) const noexcept;
+		uint32_t add();                                       // 分配学生槽（复用空洞或追加），返回学号
+		bool remove(uint32_t id);                             // 释放槽位进空闲链
+		void mark_dirty() noexcept;                           // 字段级直改后调用
 
 	private:
 		explicit FileInstance(std::filesystem::path path);    // 唯一构造，私有
 		std::filesystem::path file_path_;
+		std::vector<Record> pool_;
+		uint32_t capacity_ = 0;
+		uint32_t alive_ = 0;
+		uint32_t free_head_ = FREE_NIL;
+		bool loaded_ = false;
+		bool dirty_ = false;
 		static std::unique_ptr<FileInstance> inst_;
 	};
 }
