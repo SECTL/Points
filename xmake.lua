@@ -9,7 +9,7 @@ set_version(APP_VERSION)
 set_languages("c++20")
 add_requires("nlohmann_json","libcurl")
 
-target("points_main")
+target("points_main_old")
     set_kind("binary")
     add_files("old/main.cpp")
     add_packages("nlohmann_json", "libcurl")
@@ -23,3 +23,11 @@ target("points_main")
 
     -- 2. 生成的 rc 不会自动编译，必须手动加进源文件
     add_files("$(builddir)/version.rc", {always_added = true})
+
+target("points_modernize")
+    set_kind("binary")
+    add_files("src/storage_management.cpp")
+    add_defines(string.format('APP_VERSION="%s"', APP_VERSION))
+    if is_plat("windows") then
+        add_cxflags("/utf-8", {force = true})  -- main.cpp 是 UTF-8 无 BOM，MSVC 默认按 GBK 读
+    end
