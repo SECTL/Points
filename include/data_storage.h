@@ -16,8 +16,8 @@ namespace write{
         bool id();
         bool name(int id, const std::string& new_name);
         bool gender(int id, const std::string& new_gender);
-        bool old_point(int id, const long long& new_old_point);
-        bool point(int id, const long long& new_point);
+        bool old_score(int id, const long long& new_old_score);
+        bool score(int id, const long long& new_score);
         bool old_rank(int id, const int& new_old_rank);
         bool rank(int id, const int& new_rank);
     }
