@@ -39,6 +39,6 @@ namespace modify{
     }
 }
 
-void log(const string& message, const string& level = "INFO");
+void log(const std::string& message, const std::string& level = "INFO");
 
 #endif // DATA_PROCESSING_H
