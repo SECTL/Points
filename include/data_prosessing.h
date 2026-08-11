@@ -2,6 +2,9 @@
 # define DATA_PROCESSING_H
 
 # include <string>
+# include <vector>
+# include <optional>
+# include "include/entity.h"
 
 namespace update{
     bool download_git_release_asset(const std::string& domain_name, const std::string& save_path);
@@ -17,26 +20,27 @@ namespace json_parser{
     std::string extract_config_from_json(const std::string& key, const std::string& json_str);
 }
 
-namespace modify{
+namespace repository{
     namespace student{
-        bool id();
-        bool name(int id, const std::string& new_name);
-        bool gender(int id, const std::string& new_gender);
-        bool old_point(int id, const long long& new_old_point);
-        bool point(int id, const long long& new_point);
-        bool old_rank(int id, const int& new_old_rank);
-        bool rank(int id, const int& new_rank);
+        std::vector<Student> get_all();
+        std::optional<Student> get_by_id(int id);
+        void save_one(const Student& s);
     }
 
     namespace rule{
-        bool desc(int rule_num, const std::string& new_desc);
-        bool delta(int rule_num, const int& new_delta);
+        std::vector<Rule> get_all();
+        std::optional<Rule> get_by_rule_num(int rule_num);
+        void save_one(const Rule& r);
     }
 
     namespace gift{
-        bool desc(int gift_num, const std::string& new_desc);
-        bool delta(int gift_num, const int& new_delta);
+        std::vector<Gift> get_all();
+        std::optional<Gift> get_by_gift_num(int gift_num);
+        void save_one(const Gift& g);
     }
+
+    // 所有改动落盘（业务逻辑做完一连串操作后，最后存一下）
+    void write_to_disk();
 }
 
 void log(const std::string& message, const std::string& level = "INFO");
