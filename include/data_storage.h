@@ -31,7 +31,9 @@ namespace write{
         bool desc(int gift_num, const std::string& new_desc);
         bool delta(int gift_num, const int& new_delta);
     }
-    
+
+    void save_all();
+
     void log(const std::string& message, const std::string& level = "INFO");
 }
 

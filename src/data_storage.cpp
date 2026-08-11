@@ -233,4 +233,11 @@ namespace write
 			return true;
 		}
 	} // namespace gift
+
+	void save_all() {
+    	// 把当前班级的三张表内存数据全部原子写入磁盘
+    	ensure_students(current_class).save();
+    	ensure_rules(current_class).save();
+    	ensure_gifts(current_class).save();
+	}
 }     // namespace write
