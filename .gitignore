@@ -11,6 +11,7 @@ Release/
 
 # xmake 缓存
 .xmake/
+.cache/
 
 # clangd 编译数据库（生成产物）
 compile_commands.json
