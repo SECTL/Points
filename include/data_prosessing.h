@@ -39,4 +39,6 @@ namespace modify{
     }
 }
 
+void log(const string& message, const string& level = "INFO");
+
 #endif // DATA_PROCESSING_H

@@ -31,6 +31,8 @@ namespace write{
         bool desc(int gift_num, const std::string& new_desc);
         bool delta(int gift_num, const int& new_delta);
     }
+
+    void log(const string& message, const string& level = "INFO");
 }
 
 # endif // DATA_STORAGE_H
