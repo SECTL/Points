@@ -9,6 +9,8 @@ namespace read{
     void rules(const std::string& class_name = "default");
     void gifts(const std::string& class_name = "default");
     std::map<std::string, std::string> config(const std::string& class_name = "default");
+
+    const std::vector<Record>& return_all_records(const std::string& class_name);
 }
 
 namespace write{
