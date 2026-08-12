@@ -6,11 +6,11 @@
 
 namespace read{
     void students(const std::string& class_name = "default");
-    void rules(const std::string& class_name = "default");
+    void rules(const std::string& class_name = "default");    // 这三个函数会根据 class_name 切换班级并读取，即修改 data_storage.cpp的 current_class ，危险。是给 data_processing.h 里的 use_class() 调用的
     void gifts(const std::string& class_name = "default");
     std::map<std::string, std::string> config(const std::string& class_name = "default");
 
-    const std::vector<Record>& return_all_records(const std::string& class_name);
+    const std::vector<Record>& return_all_records(const std::string& class_name); // 这个函数不改 data_storage.cpp的 current_class ，供 data_processing.h 里的 repository::student::get_all() 之类的 调用
 }
 
 namespace write{
