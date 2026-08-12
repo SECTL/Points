@@ -194,22 +194,14 @@ export namespace points
 	inline constexpr uint32_t FREE_NIL = 0xFFFFFFFFu;
 
 	// 通用定长记录文件引擎：header(32B) + 记录数组，空闲链表复用，CRC 校验，
-	// tmp+rename 原子写。每记录类型一个单例（FileStore<T>::get()）。
-	// T 必须提供：put/get/clear/disk_size。
+	// tmp+rename 原子写。T 必须提供：put/get/clear/disk_size。
 	template<typename T>
 	class FileStore
 	{
 	public:
-		static void init(const std::filesystem::path &path)
+		explicit FileStore(std::filesystem::path path) : file_path_(std::move(path))
 		{
-			if (inst_) throw std::logic_error("FileStore already initialized");
-			inst_ = std::unique_ptr<FileStore>(new FileStore(path));
-		}
-
-		static FileStore &get()
-		{
-			if (!inst_) throw std::logic_error("FileStore not initialized");
-			return *inst_;
+			load();
 		}
 
 		FileStore(const FileStore &) = delete;
@@ -323,11 +315,21 @@ export namespace points
 		void switch_to(const std::filesystem::path &path)
 		{
 			if (path == file_path_) return;
-			save(); // 脏则先落盘当前表
+			save();
 			file_path_ = path;
-			loaded_    = false;
 			load();
 		}
+
+		const std::vector<T> &all() const noexcept
+		{
+			return pool_;
+		}
+
+		std::vector<T> &all() noexcept
+		{
+			return pool_;
+		}
+
 
 		T *find(uint32_t id) noexcept
 		{
@@ -384,9 +386,6 @@ export namespace points
 		}
 
 	private:
-		explicit FileStore(std::filesystem::path path) : file_path_(std::move(path))
-		{}
-
 		std::filesystem::path             file_path_;
 		std::vector<T>                    pool_;
 		uint32_t                          capacity_  = 0;
@@ -394,11 +393,8 @@ export namespace points
 		uint32_t                          free_head_ = FREE_NIL;
 		bool                              loaded_    = false;
 		bool                              dirty_     = false;
-		static std::unique_ptr<FileStore> inst_;
 	};
 
-	template<typename T>
-	std::unique_ptr<FileStore<T> > FileStore<T>::inst_;
 
 	// 学生表门面（保持既有 API/单例语义）
 	using FileInstance = FileStore<Record>;
