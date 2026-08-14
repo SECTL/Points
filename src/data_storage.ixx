@@ -1,9 +1,16 @@
 // Storage Module - C++20 modules with C++23 features
 // Modern OOP storage layer for points system
+module;
+
+#include <span>
+#include <string>
+#include <cstdint>
+#include <filesystem>
+
 export module storage.data;
 
 import storage;
-import std;
+
 
 export namespace points
 {

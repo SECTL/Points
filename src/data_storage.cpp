@@ -1,7 +1,14 @@
+module;
+#include <cstddef>
+#include <cstring>
+#include <algorithm>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+
 // Storage implementation with C++23 features
 module storage.data;
 import storage;
-import std;
 
 namespace points
 {
