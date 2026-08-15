@@ -1,5 +1,6 @@
 module;
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <algorithm>
 #include <stdexcept>

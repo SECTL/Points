@@ -1,9 +1,8 @@
 // 测试入口点：验证新 OOP 存储实现
-import storage.data;
-
 #include <format>
 #include <iostream>
 #include <exception>
+import storage.data;
 
 int main()
 {

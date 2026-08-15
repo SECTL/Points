@@ -5,6 +5,7 @@ module;
 #include <span>
 #include <string>
 #include <cstdint>
+#include <format>
 #include <filesystem>
 
 export module storage.data;

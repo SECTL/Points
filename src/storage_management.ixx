@@ -36,12 +36,11 @@ namespace
 		}
 		return t;
 	}
-
-	constexpr auto crc32_table = make_crc32_table();
 }
 
 inline uint32_t crc32(const void *data, size_t len)
 {
+	static constexpr auto crc32_table = make_crc32_table();
 	const auto *p = static_cast<const uint8_t *>(data);
 	uint32_t    c = 0xFFFFFFFFu;
 	for (size_t i = 0; i < len; ++i)
