@@ -56,14 +56,16 @@ export namespace points
 		}
 
 		std::uint32_t create(const StudentData &data);
-		bool          update(std::uint32_t id, const StudentData &data);
-		bool          remove(std::uint32_t id)
+
+		bool update(std::uint32_t id, const StudentData &data);
+
+		bool remove(const std::uint32_t id) const
 		{
 			return store_->remove(id);
 		}
 
 	private:
-		FileStore<Record> *store_;
+		FileStore<Record> *store_{};
 	};
 
 	class RuleRepository
@@ -83,8 +85,10 @@ export namespace points
 		}
 
 		std::uint32_t create(const RuleData &data);
-		bool          update(std::uint32_t id, const RuleData &data);
-		bool          remove(std::uint32_t id)
+
+		bool update(std::uint32_t id, const RuleData &data);
+
+		bool remove(std::uint32_t id)
 		{
 			return store_->remove(id);
 		}
@@ -110,8 +114,10 @@ export namespace points
 		}
 
 		std::uint32_t create(const GiftData &data);
-		bool          update(std::uint32_t id, const GiftData &data);
-		bool          remove(std::uint32_t id)
+
+		bool update(std::uint32_t id, const GiftData &data);
+
+		bool remove(std::uint32_t id)
 		{
 			return store_->remove(id);
 		}
@@ -125,13 +131,13 @@ export namespace points
 	{
 	public:
 		explicit DataStorage(std::string class_name = "default")
-			: class_name_(std::move(class_name)),
-			  students_store_(path_for(class_name_, "students")),
-			  rules_store_(path_for(class_name_, "rules")),
-			  gifts_store_(path_for(class_name_, "gifts")),
-			  students_(students_store_),
-			  rules_(rules_store_),
-			  gifts_(gifts_store_)
+			: class_name_(std::move(class_name))
+			, students_store_(path_for(class_name_, "students"))
+			, rules_store_(path_for(class_name_, "rules"))
+			, gifts_store_(path_for(class_name_, "gifts"))
+			, students_(students_store_)
+			, rules_(rules_store_)
+			, gifts_(gifts_store_)
 		{}
 
 		void switch_class(std::string class_name)
@@ -142,7 +148,7 @@ export namespace points
 			gifts_store_.switch_to(path_for(class_name_, "gifts"));
 		}
 
-		std::string_view class_name() const noexcept
+		[[nodiscard]] std::string_view class_name() const noexcept
 		{
 			return class_name_;
 		}
@@ -177,7 +183,9 @@ export namespace points
 		}
 
 	private:
-		static std::filesystem::path path_for(std::string_view class_name, std::string_view stem)
+		static std::filesystem::path path_for(
+			std::string_view class_name,
+			std::string_view stem)
 		{
 			if (class_name.empty() || class_name == "default")
 				return std::format("{}.dat", stem);
