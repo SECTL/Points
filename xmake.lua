@@ -9,11 +9,12 @@ set_version(APP_VERSION)
 set_languages("c++20")
 -- gcc 工具链下不声明包：xmake 包缓存会把 MSVC 编译的 libcurl 串给 gcc（__GSHandlerCheck 链接失败），
 -- 且 points_modernize（模块/反射目标）不用任何包；old 目标保持 clang-cl 编译
+-- 本地仓库（Slint 与 Material 组件库）
+add_repositories("local-repo repo")
+add_requires("slint")
+add_requires("slint-material")
 if is_plat("windows") then
-    -- 本地仓库（Slint 等），指向项目内 repo/ 目录
-    add_repositories("local-repo repo")
-    add_requires("nlohmann_json","libcurl")
-    add_requires("slint")
+    add_requires("nlohmann_json", "libcurl")
 end
 
 if is_plat("windows") then
@@ -82,6 +83,11 @@ target("points_modernize")
 --   （gcc/C++26 反射路径不声明 slint 依赖）
 --   运行时共享库（slint_cpp.dll / libslint_cpp.so）已在 after_build 中自动拷贝到 targetdir
 if get_config("toolchain") ~= "gcc" then
+rule("slint.material")
+    on_load(function (target)
+        target:add("packages", "slint-material")
+    end)
+
 rule("slint.compile")
     set_extensions(".slint")
     before_buildcmd_file(function (target, batchcmds, sourcefile, opt)
@@ -89,8 +95,10 @@ rule("slint.compile")
 
         -- 定位 slint-compiler 和 include 路径
         local slint_pkg = target:pkg("slint")
+        local material_pkg = target:pkg("slint-material")
         local compiler
         local slint_inc
+        local material_lib
         local is_windows = target:is_plat("windows")
         local compiler_name = is_windows and "slint-compiler.exe" or "slint-compiler"
         local link_name = is_windows and "slint_cpp.dll" or "slint_cpp"
@@ -99,6 +107,29 @@ rule("slint.compile")
             if installdir then
                 compiler = path.join(installdir, "bin", compiler_name)
                 slint_inc = path.join(installdir, "include", "slint")
+            end
+        end
+        if material_pkg then
+            local material_root = material_pkg:installdir()
+            for _, candidate in ipairs(os.files(path.join(material_root, "**", "material.slint"))) do
+                material_lib = candidate
+                break
+            end
+            if material_lib then
+                import("core.base.json")
+                local settings_file = path.join(os.projectdir(), ".vscode", "settings.json")
+                local settings = {}
+                if os.isfile(settings_file) then
+                    settings = json.loadfile(settings_file) or {}
+                end
+                local library_paths = settings["slint.libraryPaths"]
+                if type(library_paths) ~= "table" then
+                    library_paths = {}
+                end
+                library_paths.material = material_lib
+                settings["slint.libraryPaths"] = library_paths
+                os.mkdir(path.directory(settings_file))
+                json.savefile(settings_file, settings)
             end
         end
         if not compiler or not os.isfile(compiler) then
@@ -118,13 +149,18 @@ rule("slint.compile")
 
         batchcmds:show_progress(opt.progress, "${color.build.object}compiling.slint %s", sourcefile)
         batchcmds:mkdir(gendir)
-        batchcmds:vrunv(compiler, {
+        local compiler_args = {
             sourcefile,
             "-f", "cpp",
             "-o", headerfile,
             "--cpp-file", cppfile,
             "--cpp-namespace", ns,
-        })
+        }
+        if material_lib then
+            table.insert(compiler_args, "-L")
+            table.insert(compiler_args, "material=" .. material_lib)
+        end
+        batchcmds:vrunv(compiler, compiler_args)
 
         -- 编译生成的 .cpp
         -- slint-compiler 生成的 #include 用项目根相对路径（build\...）→ 需要 os.projectdir()
@@ -158,7 +194,7 @@ target("slint_demo")
     add_files("slint_demo/demo.slint")
     add_files("slint_demo/main.cpp")
     add_packages("slint")
-    add_rules("slint.compile")
+    add_rules("slint.compile", "slint.material")
     -- /utf-8 + /bigobj 是 MSVC 专用（Slint 生成代码量大）
     if is_plat("windows") then
         add_cxflags("/utf-8", "/bigobj", {force = true})
@@ -181,3 +217,4 @@ target("slint_demo")
         end
     end)
 end
+-- VS Code Slint 扩展使用 .vscode/settings.json 中的项目级 library path。

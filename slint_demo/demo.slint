@@ -1,8 +1,19 @@
-export component DemoWindow inherits Window {
-    title: "Slint Demo";
-    Text {
-        text: "Hello, Slint!";
-        horizontal-alignment: center;
-        vertical-alignment: center;
+import { FilledButton, MaterialWindow } from "@material";
+import { VerticalBox } from "std-widgets.slint";
+
+export component DemoWindow inherits MaterialWindow {
+    title: "Slint Material Demo";
+    preferred-width: 480px;
+    preferred-height: 320px;
+    VerticalBox {
+        alignment: center;
+        spacing: 16px;
+        Text {
+            text: "Hello, Slint Material 3!";
+            horizontal-alignment: center;
+        }
+        FilledButton {
+            text: "Continue";
+        }
     }
 }
