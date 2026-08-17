@@ -1,11 +1,14 @@
 <div align="center">
-  <h1>FsatPoints</h1>
+  <h1>FastPoints</h1>
   <img src="resource/icon/Frame%201%20(1).svg" alt="icon" width="400">
 </div>
 
 一款全新的积分管理系统，为班级教学场景设计，也可在家庭等场景使用。 配套完整的班级管理制度，保障积分制度的实施。
 
 **本项目还在开发中，目前功能不完善，请勿使用。**
+
+## **注意**
+***尽管代码以GPL v3开源，但图标遵循LICENSE_ICON。***
 
 ## 亮点
 - 精心设计的UI，方便、优雅
