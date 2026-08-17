@@ -90,6 +90,17 @@ rule("slint.material")
 
 rule("slint.compile")
     set_extensions(".slint")
+    on_load(function (target)
+        target:add("includedirs", path.join(target:autogendir(), "slint"))
+        local slint_pkg = target:pkg("slint")
+        if slint_pkg then
+            local installdir = slint_pkg:installdir()
+            local slint_inc = path.join(installdir, "include", "slint")
+            target:add("includedirs", slint_inc)
+            target:add("linkdirs", path.join(installdir, "lib"))
+            target:add("links", target:is_plat("windows") and "slint_cpp.dll" or "slint_cpp")
+        end
+    end)
     before_buildcmd_file(function (target, batchcmds, sourcefile, opt)
         import("lib.detect.find_tool")
 
@@ -101,7 +112,6 @@ rule("slint.compile")
         local material_lib
         local is_windows = target:is_plat("windows")
         local compiler_name = is_windows and "slint-compiler.exe" or "slint-compiler"
-        local link_name = is_windows and "slint_cpp.dll" or "slint_cpp"
         if slint_pkg then
             local installdir = slint_pkg:installdir()
             if installdir then
@@ -126,10 +136,12 @@ rule("slint.compile")
                 if type(library_paths) ~= "table" then
                     library_paths = {}
                 end
-                library_paths.material = material_lib
-                settings["slint.libraryPaths"] = library_paths
-                os.mkdir(path.directory(settings_file))
-                json.savefile(settings_file, settings)
+                if library_paths.material ~= material_lib then
+                    library_paths.material = material_lib
+                    settings["slint.libraryPaths"] = library_paths
+                    os.mkdir(path.directory(settings_file))
+                    json.savefile(settings_file, settings)
+                end
             end
         end
         if not compiler or not os.isfile(compiler) then
@@ -170,20 +182,14 @@ rule("slint.compile")
         }})
         table.insert(target:objectfiles(), objectfile)
 
-        -- 把生成头文件所在目录和 slint include 加入 target include 路径
-        -- gendir: 供用户源码 #include "xxx.h"
-        -- slint_inc: 供用户源码经 demo.h 间接 #include <slint.h>
-        target:add("includedirs", gendir)
-        if slint_inc then
-            target:add("includedirs", slint_inc)
-            -- slint 包的 lib 目录和链接库（on_fetch 返回的 links/linkdirs 未自动传播到 target）
-            local installdir = slint_pkg:installdir()
-            target:add("linkdirs", path.join(installdir, "lib"))
-            target:add("links", link_name)
-        end
 
-        -- 依赖追踪
+        -- 依赖追踪：入口文件和 Material 的全部 Slint 源码变化都会触发重编译
         batchcmds:add_depfiles(sourcefile)
+        if material_lib then
+            for _, dependency in ipairs(os.files(path.join(path.directory(material_lib), "**", "*.slint"))) do
+                batchcmds:add_depfiles(dependency)
+            end
+        end
         batchcmds:set_depmtime(os.mtime(objectfile))
         batchcmds:set_depcache(target:dependfile(objectfile))
     end)
