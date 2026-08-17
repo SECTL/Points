@@ -25,3 +25,5 @@
 - 短期：开发 business_logic.h 中的核心业务功能。
 - 中期：实现 data_storage.h (二进制读写) 和 data_processing.h (数据转换) 的具体逻辑。
 - 长期：将控制台交互 (console.h) 迁移至 Slint UI 框架，实现图形界面。
+
+> 本文档AI在人类的严格指令下编写，并经过了人工审查和修改。因此尽管措辞有AI味，但是内容是绝对真实的。
