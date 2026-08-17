@@ -12,4 +12,9 @@ export namespace points
 	{
 		using std::runtime_error::runtime_error;
 	};
+
+	struct internet_error : std::runtime_error
+	{
+		using std::runtime_error::runtime_error;
+	};
 }

@@ -1,23 +1,31 @@
 # ifndef DATA_PROCESSING_H
 # define DATA_PROCESSING_H
 
+# include <optional>
 # include <string>
 # include <vector>
-# include <optional>
-# include "include/entity.h"
+#include <nlohmann/json.hpp>
+# include "entity.h"
 
-namespace update{
-    bool download_git_release_asset(const std::string& domain_name, const std::string& save_path);
-    bool download_sectl_release_asset(const std::string& save_path);
-}
+namespace points
+{
+	enum class UpdateChannel { SECTL, GITHUB };
 
-namespace json_parser{
-    std::string extract_tag_name_from_git_json(const std::string& json_str);
-    std::string extract_tag_name_from_sectl_json(const std::string& json_str);
-    std::string extract_download_url_from_git_json(const std::string& json_str);
-    std::string extract_download_url_from_sectl_json(const std::string& json_str);
+	class Updater
+	{
+	public:
+		Updater(
+			const std::string &domain_name,
+			const std::string &save_path);
 
-    std::string extract_config_from_json(const std::string& key, const std::string& json_str);
+		nlohmann::json fetch_updates();
+
+		void switch_channel(UpdateChannel channel);
+		void download_updates(std::filesystem::path download_path);
+		void install_update(); //TODO: 实现
+	};
+
+	void log(const std::string &message, const std::string &level = "INFO");
 }
 
 namespace repository{
