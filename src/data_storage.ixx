@@ -1,23 +1,24 @@
-// Storage Module - C++20 modules with C++23 features
-// Modern OOP storage layer for points system
+// Domain-facing storage API. Backends implement IStorageProvider; callers do not
+// depend on the binary record layout used by the file backend.
 module;
 
-#include <span>
-#include <string>
 #include <cstdint>
-#include <format>
-#include <filesystem>
+#include <stdexcept>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
 export module storage.data;
 
 import storage;
 
-
 export namespace points
 {
-	// 数据传输对象：业务层实体
 	struct StudentData
 	{
+		std::uint32_t id = 0;
 		std::string   name;
 		std::string   gender;
 		std::int64_t  old_score = 0;
@@ -30,6 +31,7 @@ export namespace points
 
 	struct RuleData
 	{
+		std::uint32_t id = 0;
 		std::string  description;
 		std::int32_t delta = 0;
 
@@ -38,168 +40,120 @@ export namespace points
 
 	using GiftData = RuleData;
 
-	// Repository 基础设施：封装 FileStore，提供 CRUD
+	enum class StorageBackend
+	{
+		file
+	};
+
+	class IStorageProvider
+	{
+	public:
+		virtual ~IStorageProvider() = default;
+
+		virtual void switch_class(std::string class_name) = 0;
+		virtual std::string_view class_name() const noexcept = 0;
+
+		virtual std::vector<StudentData> students() const = 0;
+		virtual std::optional<StudentData> find_student(std::uint32_t id) const = 0;
+		virtual std::uint32_t create_student(const StudentData &) = 0;
+		virtual bool update_student(std::uint32_t id, const StudentData &) = 0;
+		virtual bool remove_student(std::uint32_t id) = 0;
+
+		virtual std::vector<RuleData> rules() const = 0;
+		virtual std::optional<RuleData> find_rule(std::uint32_t id) const = 0;
+		virtual std::uint32_t create_rule(const RuleData &) = 0;
+		virtual bool update_rule(std::uint32_t id, const RuleData &) = 0;
+		virtual bool remove_rule(std::uint32_t id) = 0;
+
+		virtual std::vector<GiftData> gifts() const = 0;
+		virtual std::optional<GiftData> find_gift(std::uint32_t id) const = 0;
+		virtual std::uint32_t create_gift(const GiftData &) = 0;
+		virtual bool update_gift(std::uint32_t id, const GiftData &) = 0;
+		virtual bool remove_gift(std::uint32_t id) = 0;
+
+		virtual void reload() = 0;
+		virtual void save() = 0;
+	};
+
+	std::unique_ptr<IStorageProvider> make_storage_provider(
+		StorageBackend backend,
+		std::string class_name = "default");
+
 	class StudentRepository
 	{
 	public:
-		explicit StudentRepository(FileStore<Record> &store) : store_(&store)
-		{}
-
-		std::span<const Record> all() const
-		{
-			return store_->all();
-		}
-
-		const Record *find(std::uint32_t id) const
-		{
-			return store_->find(id);
-		}
-
-		std::uint32_t create(const StudentData &data);
-
-		bool update(std::uint32_t id, const StudentData &data);
-
-		bool remove(const std::uint32_t id) const
-		{
-			return store_->remove(id);
-		}
+		explicit StudentRepository(IStorageProvider &provider) : provider_(&provider) {}
+		std::vector<StudentData> all() const { return provider_->students(); }
+		std::optional<StudentData> find(std::uint32_t id) const { return provider_->find_student(id); }
+		std::uint32_t create(const StudentData &data) { return provider_->create_student(data); }
+		bool update(std::uint32_t id, const StudentData &data) { return provider_->update_student(id, data); }
+		bool remove(std::uint32_t id) { return provider_->remove_student(id); }
 
 	private:
-		FileStore<Record> *store_{};
+		IStorageProvider *provider_;
 	};
 
 	class RuleRepository
 	{
 	public:
-		explicit RuleRepository(FileStore<RuleRecord> &store) : store_(&store)
-		{}
-
-		std::span<const RuleRecord> all() const
-		{
-			return store_->all();
-		}
-
-		const RuleRecord *find(std::uint32_t id) const
-		{
-			return store_->find(id);
-		}
-
-		std::uint32_t create(const RuleData &data);
-
-		bool update(std::uint32_t id, const RuleData &data);
-
-		bool remove(std::uint32_t id)
-		{
-			return store_->remove(id);
-		}
+		explicit RuleRepository(IStorageProvider &provider) : provider_(&provider) {}
+		std::vector<RuleData> all() const { return provider_->rules(); }
+		std::optional<RuleData> find(std::uint32_t id) const { return provider_->find_rule(id); }
+		std::uint32_t create(const RuleData &data) { return provider_->create_rule(data); }
+		bool update(std::uint32_t id, const RuleData &data) { return provider_->update_rule(id, data); }
+		bool remove(std::uint32_t id) { return provider_->remove_rule(id); }
 
 	private:
-		FileStore<RuleRecord> *store_;
+		IStorageProvider *provider_;
 	};
 
 	class GiftRepository
 	{
 	public:
-		explicit GiftRepository(FileStore<GiftRecord> &store) : store_(&store)
-		{}
-
-		std::span<const GiftRecord> all() const
-		{
-			return store_->all();
-		}
-
-		const GiftRecord *find(std::uint32_t id) const
-		{
-			return store_->find(id);
-		}
-
-		std::uint32_t create(const GiftData &data);
-
-		bool update(std::uint32_t id, const GiftData &data);
-
-		bool remove(std::uint32_t id)
-		{
-			return store_->remove(id);
-		}
+		explicit GiftRepository(IStorageProvider &provider) : provider_(&provider) {}
+		std::vector<GiftData> all() const { return provider_->gifts(); }
+		std::optional<GiftData> find(std::uint32_t id) const { return provider_->find_gift(id); }
+		std::uint32_t create(const GiftData &data) { return provider_->create_gift(data); }
+		bool update(std::uint32_t id, const GiftData &data) { return provider_->update_gift(id, data); }
+		bool remove(std::uint32_t id) { return provider_->remove_gift(id); }
 
 	private:
-		FileStore<GiftRecord> *store_;
+		IStorageProvider *provider_;
 	};
 
-	// 班级级数据存储门面：持有三个表的 FileStore + Repository
 	class DataStorage
 	{
 	public:
-		explicit DataStorage(std::string class_name = "default")
-			: class_name_(std::move(class_name))
-			, students_store_(path_for(class_name_, "students"))
-			, rules_store_(path_for(class_name_, "rules"))
-			, gifts_store_(path_for(class_name_, "gifts"))
-			, students_(students_store_)
-			, rules_(rules_store_)
-			, gifts_(gifts_store_)
+		explicit DataStorage(std::unique_ptr<IStorageProvider> provider)
+			: provider_(std::move(provider))
+			, students_(require_provider(provider_))
+			, rules_(require_provider(provider_))
+			, gifts_(require_provider(provider_))
 		{}
 
-		void switch_class(std::string class_name)
-		{
-			class_name_ = std::move(class_name);
-			students_store_.switch_to(path_for(class_name_, "students"));
-			rules_store_.switch_to(path_for(class_name_, "rules"));
-			gifts_store_.switch_to(path_for(class_name_, "gifts"));
-		}
+		explicit DataStorage(
+			std::string class_name = "default",
+			StorageBackend backend = StorageBackend::file)
+			: DataStorage(make_storage_provider(backend, std::move(class_name)))
+		{}
 
-		[[nodiscard]] std::string_view class_name() const noexcept
-		{
-			return class_name_;
-		}
-
-		StudentRepository &students() noexcept
-		{
-			return students_;
-		}
-
-		RuleRepository &rules() noexcept
-		{
-			return rules_;
-		}
-
-		GiftRepository &gifts() noexcept
-		{
-			return gifts_;
-		}
-
-		void reload()
-		{
-			students_store_.load();
-			rules_store_.load();
-			gifts_store_.load();
-		}
-
-		void save()
-		{
-			students_store_.save();
-			rules_store_.save();
-			gifts_store_.save();
-		}
+		void switch_class(std::string class_name) { provider_->switch_class(std::move(class_name)); }
+		[[nodiscard]] std::string_view class_name() const noexcept { return provider_->class_name(); }
+		StudentRepository &students() noexcept { return students_; }
+		RuleRepository &rules() noexcept { return rules_; }
+		GiftRepository &gifts() noexcept { return gifts_; }
+		void reload() { provider_->reload(); }
+		void save() { provider_->save(); }
 
 	private:
-		static std::filesystem::path path_for(
-			std::string_view class_name,
-			std::string_view stem)
+		static IStorageProvider &require_provider(const std::unique_ptr<IStorageProvider> &provider)
 		{
-			if (class_name.empty() || class_name == "default")
-				return std::format("{}.dat", stem);
-			return std::format("{}_{}.dat", stem, class_name);
+			if (!provider) throw std::invalid_argument("存储后端不能为空");
+			return *provider;
 		}
-
-		std::string class_name_;
-
-		FileStore<Record>     students_store_;
-		FileStore<RuleRecord> rules_store_;
-		FileStore<GiftRecord> gifts_store_;
-
+		std::unique_ptr<IStorageProvider> provider_;
 		StudentRepository students_;
-		RuleRepository    rules_;
-		GiftRepository    gifts_;
+		RuleRepository rules_;
+		GiftRepository gifts_;
 	};
-} // namespace points
+}

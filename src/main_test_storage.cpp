@@ -27,7 +27,7 @@ int main()
 		std::cout << std::format("创建学生 ID: {}\n", id);
 
 		// 查找学生
-		if (auto *found = storage.students().find(id); found)
+		if (auto found = storage.students().find(id); found)
 		{
 			std::cout << std::format("找到学生，分数: {}\n", found->score);
 		}
