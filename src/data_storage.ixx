@@ -1,84 +1,24 @@
-// Domain-facing storage API. Backends implement IStorageProvider; callers do not
-// depend on the binary record layout used by the file backend.
+// Repository facade over a dynamically selected storage provider.
 module;
 
+#include <algorithm>
+#include <concepts>
+#include <cstddef>
+#include <functional>
 #include <cstdint>
-#include <stdexcept>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 export module storage.data;
-
-import storage;
+export import storage.provider;
 
 export namespace points
 {
-	struct StudentData
-	{
-		std::uint32_t id = 0;
-		std::string   name;
-		std::string   gender;
-		std::int64_t  old_score = 0;
-		std::int64_t  score     = 0;
-		std::uint32_t old_rank  = 0;
-		std::uint32_t rank      = 0;
-
-		auto operator<=>(const StudentData &) const = default;
-	};
-
-	struct RuleData
-	{
-		std::uint32_t id = 0;
-		std::string  description;
-		std::int32_t delta = 0;
-
-		auto operator<=>(const RuleData &) const = default;
-	};
-
-	using GiftData = RuleData;
-
-	enum class StorageBackend
-	{
-		file
-	};
-
-	class IStorageProvider
-	{
-	public:
-		virtual ~IStorageProvider() = default;
-
-		virtual void switch_class(std::string class_name) = 0;
-		virtual std::string_view class_name() const noexcept = 0;
-
-		virtual std::vector<StudentData> students() const = 0;
-		virtual std::optional<StudentData> find_student(std::uint32_t id) const = 0;
-		virtual std::uint32_t create_student(const StudentData &) = 0;
-		virtual bool update_student(std::uint32_t id, const StudentData &) = 0;
-		virtual bool remove_student(std::uint32_t id) = 0;
-
-		virtual std::vector<RuleData> rules() const = 0;
-		virtual std::optional<RuleData> find_rule(std::uint32_t id) const = 0;
-		virtual std::uint32_t create_rule(const RuleData &) = 0;
-		virtual bool update_rule(std::uint32_t id, const RuleData &) = 0;
-		virtual bool remove_rule(std::uint32_t id) = 0;
-
-		virtual std::vector<GiftData> gifts() const = 0;
-		virtual std::optional<GiftData> find_gift(std::uint32_t id) const = 0;
-		virtual std::uint32_t create_gift(const GiftData &) = 0;
-		virtual bool update_gift(std::uint32_t id, const GiftData &) = 0;
-		virtual bool remove_gift(std::uint32_t id) = 0;
-
-		virtual void reload() = 0;
-		virtual void save() = 0;
-	};
-
-	std::unique_ptr<IStorageProvider> make_storage_provider(
-		StorageBackend backend,
-		std::string class_name = "default");
-
 	class StudentRepository
 	{
 	public:
@@ -88,6 +28,34 @@ export namespace points
 		std::uint32_t create(const StudentData &data) { return provider_->create_student(data); }
 		bool update(std::uint32_t id, const StudentData &data) { return provider_->update_student(id, data); }
 		bool remove(std::uint32_t id) { return provider_->remove_student(id); }
+
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const StudentData &>
+		std::vector<StudentData> all(Predicate &&predicate) const
+		{
+			auto result = all();
+			std::erase_if(result, [&](const auto &item) { return !std::invoke(predicate, item); });
+			return result;
+		}
+
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const StudentData &>
+		std::optional<StudentData> find(Predicate &&predicate) const
+		{
+			for (auto &item : all())
+				if (std::invoke(predicate, item)) return item;
+			return std::nullopt;
+		}
+
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const StudentData &>
+		std::size_t remove(Predicate &&predicate)
+		{
+			std::size_t removed = 0;
+			for (const auto &item : all())
+				if (std::invoke(predicate, item) && provider_->remove_student(item.id)) ++removed;
+			return removed;
+		}
 
 	private:
 		IStorageProvider *provider_;
@@ -103,6 +71,34 @@ export namespace points
 		bool update(std::uint32_t id, const RuleData &data) { return provider_->update_rule(id, data); }
 		bool remove(std::uint32_t id) { return provider_->remove_rule(id); }
 
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const RuleData &>
+		std::vector<RuleData> all(Predicate &&predicate) const
+		{
+			auto result = all();
+			std::erase_if(result, [&](const auto &item) { return !std::invoke(predicate, item); });
+			return result;
+		}
+
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const RuleData &>
+		std::optional<RuleData> find(Predicate &&predicate) const
+		{
+			for (auto &item : all())
+				if (std::invoke(predicate, item)) return item;
+			return std::nullopt;
+		}
+
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const RuleData &>
+		std::size_t remove(Predicate &&predicate)
+		{
+			std::size_t removed = 0;
+			for (const auto &item : all())
+				if (std::invoke(predicate, item) && provider_->remove_rule(item.id)) ++removed;
+			return removed;
+		}
+
 	private:
 		IStorageProvider *provider_;
 	};
@@ -116,6 +112,34 @@ export namespace points
 		std::uint32_t create(const GiftData &data) { return provider_->create_gift(data); }
 		bool update(std::uint32_t id, const GiftData &data) { return provider_->update_gift(id, data); }
 		bool remove(std::uint32_t id) { return provider_->remove_gift(id); }
+
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const GiftData &>
+		std::vector<GiftData> all(Predicate &&predicate) const
+		{
+			auto result = all();
+			std::erase_if(result, [&](const auto &item) { return !std::invoke(predicate, item); });
+			return result;
+		}
+
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const GiftData &>
+		std::optional<GiftData> find(Predicate &&predicate) const
+		{
+			for (auto &item : all())
+				if (std::invoke(predicate, item)) return item;
+			return std::nullopt;
+		}
+
+		template <typename Predicate>
+			requires std::predicate<Predicate &, const GiftData &>
+		std::size_t remove(Predicate &&predicate)
+		{
+			std::size_t removed = 0;
+			for (const auto &item : all())
+				if (std::invoke(predicate, item) && provider_->remove_gift(item.id)) ++removed;
+			return removed;
+		}
 
 	private:
 		IStorageProvider *provider_;
@@ -151,6 +175,7 @@ export namespace points
 			if (!provider) throw std::invalid_argument("存储后端不能为空");
 			return *provider;
 		}
+
 		std::unique_ptr<IStorageProvider> provider_;
 		StudentRepository students_;
 		RuleRepository rules_;

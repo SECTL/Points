@@ -11,17 +11,16 @@ set_languages("c++20")
 -- 且 points_modernize（模块/反射目标）不用任何包；old 目标保持 clang-cl 编译
 -- 本地仓库（Slint 与 Material 组件库）
 add_repositories("local-repo repo")
-add_requires("slint")
-add_requires("slint-material")
-if is_plat("windows") then
-    add_requires("nlohmann_json", "libcurl")
-end
+--add_requires("slint")
+--add_requires("slint-material")
+
+add_requires("nlohmann_json", "libcurl", "spdlog")
 
 if is_plat("windows") then
 target("points_main")
     set_kind("binary")
     add_files("old/main.cpp")
-    add_packages("nlohmann_json", "libcurl")
+    add_packages("nlohmann_json", "libcurl", "spdlog")
     add_defines(string.format('APP_VERSION="%s"', APP_VERSION))
     -- /utf-8 是 MSVC/clang-cl 专用；GCC 默认按 UTF-8 读源码
     add_cxflags("/utf-8", {force = true})  -- main.cpp 是 UTF-8 无 BOM，MSVC 默认按 GBK 读
@@ -36,10 +35,13 @@ target("points_modernize")
     set_kind("binary")
     add_files("src/storage_management.ixx")
     add_files("src/exceptions.ixx")
+    add_files("src/storage_provider.ixx")
     add_files("src/data_storage.ixx")
     add_files("src/storage_management.cpp")
-    add_files("src/data_storage.cpp")
+    add_files("src/file_storage_provider.cpp")
     add_files("src/main_test_storage.cpp")
+    add_files("src/data_processing.cpp")
+    add_packages("nlohmann_json")
     add_includedirs("include")
     add_defines(string.format('APP_VERSION="%s"', APP_VERSION))
     -- /utf-8 是 MSVC/clang-cl 专用；GCC 默认按 UTF-8 读源码
@@ -158,6 +160,7 @@ rule("slint.compile")
 
         -- 命名空间：取目标名，可被 target:extraconf("rules", "slint.compile", "namespace") 覆盖
         local ns = target:extraconf("rules", "slint.compile", "namespace") or target:name()
+        local embed_resources = target:extraconf("rules", "slint.compile", "embed_resources") or "embed-files"
 
         batchcmds:show_progress(opt.progress, "${color.build.object}compiling.slint %s", sourcefile)
         batchcmds:mkdir(gendir)
@@ -167,6 +170,7 @@ rule("slint.compile")
             "-o", headerfile,
             "--cpp-file", cppfile,
             "--cpp-namespace", ns,
+            "--embed-resources", embed_resources,
         }
         if material_lib then
             table.insert(compiler_args, "-L")
@@ -194,6 +198,7 @@ rule("slint.compile")
         batchcmds:set_depcache(target:dependfile(objectfile))
     end)
 
+--[[
 target("slint_demo")
     set_kind("binary")
     set_default(false)
@@ -222,5 +227,6 @@ target("slint_demo")
             end
         end
     end)
+--]]
 end
 -- VS Code Slint 扩展使用 .vscode/settings.json 中的项目级 library path。

@@ -2,6 +2,7 @@
 #include <format>
 #include <iostream>
 #include <exception>
+#include <stdexcept>
 import storage.data;
 
 int main()
@@ -26,11 +27,29 @@ int main()
 		auto id = storage.students().create(student);
 		std::cout << std::format("创建学生 ID: {}\n", id);
 
-		// 查找学生
-		if (auto found = storage.students().find(id); found)
+		// 函数查询：返回第一个满足条件的学生
+		if (auto found = storage.students().find(
+			[id](const points::StudentData &candidate)
+			{
+				return candidate.id == id && candidate.score == 100;
+			}); found)
 		{
 			std::cout << std::format("找到学生，分数: {}\n", found->score);
 		}
+		else
+		{
+			throw std::runtime_error("函数查询未找到刚创建的学生");
+		}
+
+		// 函数删除：删除所有满足条件的学生，并返回删除数量
+		const auto removed = storage.students().remove(
+			[id](const points::StudentData &candidate)
+			{
+				return candidate.id == id;
+			});
+		if (removed != 1) throw std::runtime_error("函数删除数量不正确");
+		if (storage.students().find(id))
+			throw std::runtime_error("函数删除后学生仍然存在");
 
 		// 保存到磁盘
 		storage.save();
