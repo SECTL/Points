@@ -1,7 +1,7 @@
 module business.logic;
-
-import storage.data;
 #include <algorithm>
+import storage.data;
+
 
 // 注：未完工。下一步计划：使用模板简化代码。
 namespace core {
