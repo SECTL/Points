@@ -20,21 +20,44 @@ namespace core {
     void write_to_disk() {
         get_storage().save();
     }
+
+    class Ranking{
+        private:
+            bool is_dirty = true;
+            std::optional<std::vector<points::StudentData>> cache;
+            bool rebuild_cache() {
+                if (!is_dirty) return true;
+                auto all_students = get_storage().students().all();
+                std::sort(all_students.begin(), all_students.end(),
+                    [](const points::StudentData& a, const points::StudentData& b) {
+                        if (a.score != b.score) return a.score > b.score;
+                        return a.id < b.id;
+                    });
+                cache = all_students;
+                is_dirty = false;
+                return true;
+            }
+        public:
+            const std::vector<points::StudentData>& get() {
+                rebuild_cache();
+                return *cache;
+            }
+    }
     
     namespace student {
         std::vector<points::StudentData> get_all() {
             return get_storage().students().all();
         }
         
-        std::vector<points::StudentData> get_ranking() {
-            auto all_students = get_storage().students().all();
-            std::sort(all_students.begin(), all_students.end(),
-                [](const points::StudentData& a, const points::StudentData& b) {
-                    if (a.score != b.score) return a.score > b.score;
-                    return a.id < b.id;
-                });
-            return all_students;
-        }
+        // std::vector<points::StudentData> get_ranking() {
+        //     auto all_students = get_storage().students().all();
+        //     std::sort(all_students.begin(), all_students.end(),
+        //         [](const points::StudentData& a, const points::StudentData& b) {
+        //             if (a.score != b.score) return a.score > b.score;
+        //             return a.id < b.id;
+        //         });
+        //     return all_students;
+        // }
         
         Result modify(const points::StudentData &new_student) {
             if (get_storage().students().find(new_student.id) == std::nullopt) {
